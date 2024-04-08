@@ -9,10 +9,10 @@ def dlogistic_map(mu, x):
     return mu * (1 - 2 * x)
 
 def perturbed_logistic_map(r, x):
-    return r*x*(1-x) + 0.1 * x**5
+    return r*np.sin(x*np.pi)
 
 def dperturbed_logistic_map(r, x):
-    return r*(1-2*x) + 5*0.1*x**4
+    return r*np.cos(x*np.pi)*np.pi
 
 def f(n, mu):
     logistic_val = np.zeros(2**n)
@@ -27,7 +27,7 @@ def f(n, mu):
 def fperturbed(n, mu):
     perturbed_logistic_val = np.zeros(2**n)
     perturbed_logistic_val[0] = perturbed_logistic_map(mu, 0.5)
-    dperturbed_logistic_val = 0.25
+    dperturbed_logistic_val = np.sin(0.5*np.pi)
     for i in range(1, 2**n):
         perturbed_logistic_val[i] = perturbed_logistic_map(mu, perturbed_logistic_val[i-1])
         perturbed_devpart = dperturbed_logistic_map(mu, perturbed_logistic_val[i-1])
@@ -39,9 +39,9 @@ mu_values = np.zeros(niter)
 mu_values[0] = 2
 mu_values[1] = 3.23607
 mu_values_perturbed = np.zeros(niter)
-mu_values_perturbed[0] = 1.9875
-mu_values_perturbed[1] = 3.22703
-deltareal = 4.67
+mu_values_perturbed[0] = 0.5
+mu_values_perturbed[1] = 0.7777
+deltareal = 4.6692016
 
 for n in range(2, niter):
     x0 = mu_values[n-1] + (mu_values[n-1] - mu_values[n-2]) / deltareal
@@ -49,7 +49,7 @@ for n in range(2, niter):
     
 for n in range(2, niter):
     x0 = mu_values_perturbed[n-1] + (mu_values_perturbed[n-1] - mu_values_perturbed[n-2]) / deltareal
-    mu_values_perturbed[n] = newton(lambda x: fperturbed(n, x)[0], x0, fprime=lambda x: fperturbed(n, x)[1])
+    mu_values_perturbed[n] = newton(lambda x: fperturbed(n, x)[0], x0, fprime=lambda x: fperturbed(n, x)[1], maxiter=4000)
 
 delta_values = [(mu_values[i+1] - mu_values[i]) / (mu_values[i] - mu_values[i-1]) for i in range(1, len(mu_values)-1) if mu_values[i] != mu_values[i-1]]
 delta = np.mean(delta_values)
@@ -63,4 +63,7 @@ delta_perturbed = 1/delta_perturbed
 print("Feigenbaum delta constant:", delta)
 print("Feigenbaum delta constant perturbed:", delta_perturbed)
 
-
+last_deriv_value = f(niter-1, mu_values[niter-1])[1]
+pre_last_deriv_value = f(niter-2, mu_values[niter-2])[1]
+alpha = last_deriv_value / pre_last_deriv_value
+print("Feigenbaum alpha constant:", alpha)
