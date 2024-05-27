@@ -1,0 +1,189 @@
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FFMpegWriter
+import time
+
+# Simulation parameters
+width = 1
+height = 1
+limits = np.array([width, height])
+xlim = (0, width)
+ylim = (0, height)
+r1 = 0.1
+r2 = 0.2
+r3 = 0.3
+rho1 = 0.4
+rho2 = 0.4
+rho3 = 0.1
+rho4 = 0.1
+c = 2
+alpha = 0.7
+beta = 0.3
+dt = 0.01
+
+def main():
+    # N = 30
+    # pos = np.random.rand(N, 2)
+    # vel = np.random.uniform(-1, 1, size=(N, 2))
+
+    # t = 1
+    # num_steps = 100
+
+    # fig, ax = plt.subplots(figsize=(5,5))
+    # ax.set_xlim(xlim)
+    # ax.set_ylim(ylim)
+    # quiver = ax.quiver(pos[:, 0], pos[:, 1], vel[:, 0], vel[:, 1], angles='xy', scale_units='xy', scale=40, width=0.01, headlength=1, headwidth=1)
+
+    # def update_plot(frame, t):
+    #     t = update(pos, vel, N, t)
+    #     quiver.set_offsets(pos)
+    #     quiver.set_UVC(vel[:, 0], vel[:, 1])
+    #     title = ax.text(0.5, 1.05, '', ha='center', transform=ax.transAxes)
+    #     return quiver, title
+
+    # ani = FuncAnimation(fig, update_plot, fargs=(t,), frames=num_steps, interval=10, blit=True)
+    # plt.tight_layout()
+    # plt.show()
+    
+    num_steps = 75
+    # beta = 0.2
+
+    # N_values = np.arange(1, 100, 1)  # Change this to the range of N values you want to use
+    # mean_speeds = np.zeros_like(N_values, dtype=float)
+
+    # for i, N in enumerate(N_values):
+    #     pos = np.random.rand(N, 2)
+    #     vel = np.random.uniform(-1, 1, size=(N, 2))
+
+    #     va_values = np.zeros(num_steps)  # Array to store va at each time step
+
+    #     for j in range(num_steps):
+    #         update(pos, vel, N, beta=0.2)  
+    #         sum_vel = np.linalg.norm(np.sum(vel, axis=0))
+    #         va = sum_vel / N
+    #         va_values[j] = va  # Store va at this time step
+
+    #     mean_speeds[i] = np.mean(va_values)  # Temporal mean of va
+
+    # area = width*height
+    # # Calculate densities
+    # density_values = N_values / area
+    # plt.figure()
+    # plt.plot(density_values, mean_speeds)
+    # plt.xlabel('Density', fontsize=14)
+    # plt.ylabel('Temporal mean of mean self-propulsion speed', fontsize=14)
+    # plt.text(0.7, 0.9, f'r1: {r1}, r2: {r2}, r3: {r3}', transform=plt.gca().transAxes, fontsize=14)
+    # plt.text(0.7, 0.85, f'rho1: {rho1}, rho2: {rho2}, rho3: {rho3}, rho4: {rho4}', transform=plt.gca().transAxes, fontsize=14)
+    # plt.text(0.7, 0.8, f'c: {c}, beta: {beta}', transform=plt.gca().transAxes, fontsize=14)
+    #     # # Increase font size of axis tick labels
+    # plt.tick_params(axis='both', which='major', labelsize=12)
+    # plt.show()
+    
+    beta_values = np.arange(0.01, 0.99, 0.03)  # Change this to the range of N values you want to use
+    mean_speeds = np.zeros_like(beta_values, dtype=float)
+    
+    N = 30
+
+    for i, beta in enumerate(beta_values):
+        pos = np.random.rand(N, 2)
+        vel = np.random.uniform(-1, 1, size=(N, 2))
+
+        va_values = np.zeros(num_steps)  # Array to store va at each time step
+
+        for j in range(num_steps):
+            update(pos, vel, N, beta)  
+            sum_vel = np.linalg.norm(np.sum(vel, axis=0))
+            va = sum_vel / N
+            va_values[j] = va  # Store va at this time step
+
+        mean_speeds[i] = np.mean(va_values)  # Temporal mean of va
+
+    plt.figure()
+    plt.plot(beta_values, mean_speeds)
+    plt.xlabel('Beta', fontsize=14)
+    plt.ylabel('Temporal mean of mean self-propulsion speed', fontsize=14)
+    plt.text(0.1, 0.11, f'r1: {r1}, r2: {r2}, r3: {r3}', transform=plt.gca().transAxes, fontsize=14)
+    plt.text(0.1, 0.06, f'rho1: {rho1}, rho2: {rho2}, rho3: {rho3}, rho4: {rho4}', transform=plt.gca().transAxes, fontsize=14)
+    plt.text(0.1, 0.01, f'N: {N}', transform=plt.gca().transAxes, fontsize=14)
+    # Increase font size of axis tick labels
+    plt.tick_params(axis='both', which='major', labelsize=12)
+
+    plt.show()
+
+def update(pos, vel, N, beta):
+    # Zoning
+    com1 = np.zeros((N, 2))
+    n1 = np.zeros((N,))
+    avgvel2 = np.zeros((N, 2))
+    n2 = np.zeros((N,))
+    com3 = np.zeros((N, 2))
+    n3 = np.zeros((N,))
+    
+    for i in range(N):
+        for j in range(i + 1, N):
+            dx = pos[i][0] - pos[j][0]
+            dx = dx - width * np.round(dx / width)
+            dy = pos[i][1] - pos[j][1]
+            dy = dy - height * np.round(dy / height)
+            sqdist = dx**2 + dy**2
+            if sqdist < r1**2:
+                com1[i] += pos[j]
+                n1[i] += 1 
+                com1[j] += pos[i]
+                n1[j] += 1
+            elif sqdist < r2**2:
+                avgvel2[i] += vel[j]
+                n2[i] += 1
+                avgvel2[j] += vel[i]
+                n2[j] += 1
+            elif sqdist < r3**2:
+                com3[i] += pos[j]
+                n3[i] += 1
+                com3[j] += pos[i]
+                n3[j] += 1
+        
+        if n1[i] > 0:
+            com1[i] /= n1[i]
+        if n2[i] > 0:
+            avgvel2[i] /= n2[i]
+        if n3[i] > 0:
+            com3[i] /= n3[i]
+
+        # Unit vectors
+        if np.linalg.norm(pos[i] - com1[i]) > 0:
+            v1 = pos[i] - com1[i]
+            e1 = v1 / np.linalg.norm(v1)
+        else:
+            e1 = np.zeros(2)
+        
+        if np.linalg.norm(avgvel2[i] + vel[i]) > 0:
+            v2 = avgvel2[i] + vel[i]
+            e2 = v2 / np.linalg.norm(v2)
+        else:
+            e2 = np.zeros(2)
+        
+        if np.linalg.norm(com3[i] - pos[i]) > 0:
+            v3 = com3[i] - pos[i]
+            e3 = v3 / np.linalg.norm(v3)
+        else:
+            e3 = np.zeros(2)
+        alpha = 1 - beta
+        # Update
+        vel[i] += rho1 * e1 + rho2 * e2 + rho3 * e3 + rho4 * vel[i]
+        vel[i] /= np.linalg.norm(vel[i]) # Normalizing velocity
+        pos[i] = ( (pos[i] + alpha * dt * vel[i]) + beta * brownian(0.01)) % limits
+
+def brownian(rmax):
+    # Sample r from truncated Rayleigh distribution
+    sigma = np.sqrt(c**2 * dt) # Scale
+    umax = 1 - np.exp(-rmax**2/(2*sigma**2)) # Cutoff
+    u = np.random.uniform(high=umax)
+    dr = np.sqrt(-2*sigma**2*np.log(1 - u)) # Inverse transform sampling
+    # Sample θ from uniform distribution on [0, 2π)
+    theta = np.random.uniform(high=2*np.pi)
+    # Return increment in Cartesian coords
+    return dr * np.array([np.cos(theta), np.sin(theta)])
+
+if __name__ == '__main__':
+    main()
